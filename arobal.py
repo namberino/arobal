@@ -157,6 +157,8 @@ class Lexer:
 class NumberNode:
     def __init__(self, token) -> None:
         self.token = token
+        self.pos_start = self.token.pos_start
+        self.pos_end = self.token.pos_end
 
     def __repr__(self) -> str:
         return f"{self.token}"
@@ -167,6 +169,8 @@ class BinaryOperationNode:
         self.left_node = left_node
         self.op_token = op_token
         self.right_node = right_node
+        self.pos_start = self.left_node.pos_start
+        self.pos_end = self.right_node.pos_end
 
     def __repr__(self) -> str:
         return f"({self.left_node}, {self.op_token}, {self.right_node})"
@@ -176,6 +180,8 @@ class UnaryOperationNode:
     def __init__(self, op_token, node) -> None:
         self.op_token = op_token
         self.node = node
+        self.pos_start = self.op_token.pos_start
+        self.pos_end = self.node.pos_end
 
     def __repr__(self) -> str:
         return f"({self.op_token}, {self.node})"
@@ -274,6 +280,73 @@ class Parser:
             left = BinaryOperationNode(left, op_token, right)
         
         return res.success(left)
+    
+
+# for storing numbers
+class Number:
+    def __init__(self, value) -> None:
+        self.value = value
+        self.set_pos()
+
+    def set_pos(self, pos_start=None, pos_end=None):
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        return self
+    
+    def add(self, other):
+        if isinstance(other, Number):
+            return Number(self.value + other.value)
+        
+    def sub(self, other):
+        if isinstance(other, Number):
+            return Number(self.value - other.value)
+        
+    def mul(self, other):
+        if isinstance(other, Number):
+            return Number(self.value * other.value)
+    
+    def div(self, other):
+        if isinstance(other, Number):
+            return Number(self.value / other.value)
+        
+    def __repr__(self) -> str:
+        return str(self.value)
+    
+
+class Interpreter:
+    def visit(self, node):
+        method_name = f"visit_{type(node).__name__}"
+        method = getattr(self, method_name, self.no_visit_method)
+        return method(node)
+    
+    def no_visit_method(self, node):
+        raise Exception(f"No visit_{type(node).__name__} method defined")
+    
+    def visit_NumberNode(self, node):
+        return Number(node.token.value).set_pos(node.pos_start, node.pos_end)
+
+    def visit_BinaryOperationNode(self, node):
+        left = self.visit(node.left_node)
+        right = self.visit(node.right_node)
+
+        if node.op_token.type == TT_PLUS:
+            result = left.add(right)
+        elif node.op_token.type == TT_MINUS:
+            result = left.sub(right)
+        elif node.op_token.type == TT_MUL:
+            result = left.mul(right)
+        elif node.op_token.type == TT_DIV:
+            result = left.div(right)
+
+        return result.set_pos(node.pos_start, node.pos_end)
+    
+    def visit_UnaryOperationNode(self, node):
+        number = self.visit(node.node)
+
+        if node.op_token.type == TT_MINUS:
+            number = number.mul(Number(-1))
+
+        return number.set_pos(node.pos_start, node.pos_end)
 
 
 def run(text, file_name):
@@ -288,4 +361,10 @@ def run(text, file_name):
     parser = Parser(tokens)
     ast = parser.parse()
 
-    return ast.node, ast.error
+    if ast.error:
+        return None, ast.error
+    
+    interpreter = Interpreter()
+    result = interpreter.visit(ast.node)
+
+    return result, None
