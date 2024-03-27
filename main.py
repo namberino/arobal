@@ -1,7 +1,7 @@
 import arobal
 
 while True:
-    text = input("AROBAL> ")
+    text = input("AROBAL% ")
     result, error = arobal.run(text, "<stdin>")
 
     if error:

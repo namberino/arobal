@@ -5,3 +5,10 @@
 - Factor: Need to support negative numbers (unary operations) here.
 - Term: Factor * or / Factor
 - Expression: Term + or - Term
+
+# Variables stuff
+```
+VAR         var_name        =    expression
+ ^             ^            ^
+KEYWORD    IDENTIFIER     EQUALS
+```
