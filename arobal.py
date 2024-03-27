@@ -9,6 +9,7 @@ TT_PLUS = "PLUS"
 TT_MINUS = "MINUS"
 TT_MUL = "MUL"
 TT_DIV = "DIV"
+TT_POW = "POW"
 TT_LPAREN = "LPAREN"
 TT_RPAREN = "RPAREN"
 TT_EOF = "EOF"
@@ -143,6 +144,9 @@ class Lexer:
             elif self.current_char == ')':
                 tokens.append(Token(TT_RPAREN, pos_start=self.pos))
                 self.advance()
+            elif self.current_char == "^":
+                tokens.append(Token(TT_POW, pos_start=self.pos))
+                self.advance()
             else:
                 pos_start = self.pos.copy()
 
@@ -253,18 +257,14 @@ class Parser:
             return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected +, -, * or /"))
         return res
     
-    def factor(self):
+    def power(self):
+        return self.binary_op(self.atom, (TT_POW, ), self.factor)
+    
+    def atom(self):
         res = ParseResult()
         token = self.current_token
 
-        if token.type in (TT_PLUS, TT_MINUS):
-            res.register(self.advance())
-            factor = res.register(self.factor())
-
-            if res.error:
-                return res
-            return res.success(UnaryOperationNode(token, factor))
-        elif token.type in (TT_INT, TT_FLOAT):
+        if token.type in (TT_INT, TT_FLOAT):
             res.register(self.advance())
             return res.success(NumberNode(token))
         elif token.type == TT_LPAREN:
@@ -279,8 +279,22 @@ class Parser:
                 return res.success(expr)
             else:
                 return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected ')'"))
+            
+        return res.failure(InvalidSyntaxError(token.pos_start, token.pos_end, "Expected int, float, '+', '-' or '('"))
+    
+    def factor(self):
+        res = ParseResult()
+        token = self.current_token
+
+        if token.type in (TT_PLUS, TT_MINUS):
+            res.register(self.advance())
+            factor = res.register(self.factor())
+
+            if res.error:
+                return res
+            return res.success(UnaryOperationNode(token, factor))
         
-        return res.failure(InvalidSyntaxError(token.pos_start, token.pos_end, "Expected an int or a float"))
+        return self.power()
 
     def term(self):
         return self.binary_op(self.factor, (TT_MUL, TT_DIV))
@@ -288,16 +302,19 @@ class Parser:
     def expression(self):
         return self.binary_op(self.term, (TT_PLUS, TT_MINUS))
 
-    def binary_op(self, function, ops):
+    def binary_op(self, function_a, ops, function_b=None):
+        if function_b == None:
+            function_b = function_a
+
         res = ParseResult()
-        left = res.register(function())
+        left = res.register(function_a())
         if res.error:
             return res
 
         while self.current_token.type in ops:
             op_token = self.current_token
             res.register(self.advance())
-            right = res.register(function())
+            right = res.register(function_b())
             if res.error:
                 return res
             left = BinaryOperationNode(left, op_token, right)
@@ -366,6 +383,10 @@ class Number:
                 return None, RuntimeError(other.pos_start, other.pos_end, "Division by 0", self.context)
             return Number(self.value / other.value).set_context(self.context), None
         
+    def pow(self, other):
+        if isinstance(other, Number):
+            return Number(self.value ** other.value).set_context(self.context), None
+        
     def __repr__(self) -> str:
         return str(self.value)
     
@@ -397,6 +418,8 @@ class Interpreter:
             result, error = left.mul(right)
         elif node.op_token.type == TT_DIV:
             result, error = left.div(right)
+        elif node.op_token.type == TT_POW:
+            result, error = left.pow(right)
 
         if error:
             return res.failure(error)

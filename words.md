@@ -1,5 +1,7 @@
-# Some important vocabulary
+# Some important vocabulary (Order by priority)
 
-- Factor: The numbers in the expression (int or float), need to support negative numbers (unary operations) too. Add support for parentheses here too.
+- Atom: The numbers in the expression (int or float). Add support for parentheses here too (parentheses wrap around expression)
+- Power: Atom ^ Factor
+- Factor: Need to support negative numbers (unary operations) here.
 - Term: Factor * or / Factor
 - Expression: Term + or - Term
