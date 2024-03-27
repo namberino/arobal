@@ -1,8 +1,8 @@
-import basic
+import arobal
 
 while True:
-    text = input("NAMBASIC > ")
-    result, error = basic.run(text, "stdin")
+    text = input("AROBAL> ")
+    result, error = arobal.run(text, "stdin")
 
     if error:
         print(error.as_string())

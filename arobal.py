@@ -23,7 +23,7 @@ class Error:
     def as_string(self):
         result = f"{self.err_name}: {self.details}"
         result += f"\nFile {self.pos_start.file_name}, line {self.pos_start.line + 1}"
-        result += "\n" + strings_with_arrows(self.pos_start.file_text, self.pos_start, self.pos_end)
+        result += f"\n{strings_with_arrows(self.pos_start.file_text, self.pos_start, self.pos_end)}"
 
         return result
 
