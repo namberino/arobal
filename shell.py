@@ -1,7 +1,7 @@
 import basic
 
 while True:
-    text = input("BASIC > ")
+    text = input("NAMBASIC > ")
     result, error = basic.run(text, "stdin")
 
     if error:

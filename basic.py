@@ -134,10 +134,79 @@ class Lexer:
             return Token(TT_INT, int(num_str))
         else:
             return Token(TT_FLOAT, float(num_str))
+        
+
+class NumberNode:
+    def __init__(self, token) -> None:
+        self.token = token
+
+    def __repr__(self) -> str:
+        return f"{self.token}"
+    
+
+class BinaryOperationNode:
+    def __init__(self, left_node, op_token, right_node) -> None:
+        self.left_node = left_node
+        self.op_token = op_token
+        self.right_node = right_node
+
+    def __repr__(self) -> str:
+        return f"({self.left_node}, {self.op_token}, {self.right_node})"
+    
+
+class Parser:
+    def __init__(self, tokens) -> None:
+        self.tokens = tokens
+        self.token_index = -1
+        self.advance()
+
+    def advance(self):
+        self.token_index += 1
+
+        if self.token_index < len(self.tokens):
+            self.current_token = self.tokens[self.token_index]
+        
+        return self.current_token
+    
+    def parse(self):
+        res = self.expression()
+        return res
+    
+    def factor(self):
+        token = self.current_token
+
+        if token.type in (TT_INT, TT_FLOAT):
+            self.advance()
+            return NumberNode(token)
+
+    def term(self):
+        return self.binary_op(self.factor, (TT_MUL, TT_DIV))
+
+    def expression(self):
+        return self.binary_op(self.term, (TT_PLUS, TT_MINUS))
+
+    def binary_op(self, function, ops):
+        left = function()
+
+        while self.current_token.type in ops:
+            op_token = self.current_token
+            self.advance()
+            right = function()
+            left = BinaryOperationNode(left, op_token, right)
+        
+        return left
 
 
 def run(text, file_name):
+    # generate tokens
     lexer = Lexer(text, file_name)
     tokens, error = lexer.make_token()
 
-    return tokens, error
+    if error:
+        return None, error
+
+    # generate AST
+    parser = Parser(tokens)
+    ast = parser.parse()
+
+    return ast, None
