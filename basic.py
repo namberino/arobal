@@ -1,4 +1,4 @@
-from strings_with_arrows import *
+from string_format import *
 
 DIGITS = "0123456789"
 
@@ -172,6 +172,15 @@ class BinaryOperationNode:
         return f"({self.left_node}, {self.op_token}, {self.right_node})"
     
 
+class UnaryOperationNode:
+    def __init__(self, op_token, node) -> None:
+        self.op_token = op_token
+        self.node = node
+
+    def __repr__(self) -> str:
+        return f"({self.op_token}, {self.node})"
+    
+
 class ParseResult:
     def __init__(self) -> None:
         self.error = None
@@ -219,9 +228,28 @@ class Parser:
         res = ParseResult()
         token = self.current_token
 
-        if token.type in (TT_INT, TT_FLOAT):
+        if token.type in (TT_PLUS, TT_MINUS):
+            res.register(self.advance())
+            factor = res.register(self.factor())
+
+            if res.error:
+                return res
+            return res.success(UnaryOperationNode(token, factor))
+        elif token.type in (TT_INT, TT_FLOAT):
             res.register(self.advance())
             return res.success(NumberNode(token))
+        elif token.type == TT_LPAREN:
+            res.register(self.advance())
+            expr = res.register(self.expression())
+
+            if res.error:
+                return res
+            
+            if self.current_token.type == TT_RPAREN:
+                res.register(self.advance())
+                return res.success(expr)
+            else:
+                return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected ')'"))
         
         return res.failure(InvalidSyntaxError(token.pos_start, token.pos_end, "Expected an int or a float"))
 
