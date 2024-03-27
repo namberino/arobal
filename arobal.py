@@ -32,9 +32,12 @@ class IllegalCharacterError(Error):
         super().__init__(pos_start, pos_end, "Illegal Character", details)
 
 class InvalidSyntaxError(Error):
-     def __init__(self, pos_start, pos_end, details) -> None:
+    def __init__(self, pos_start, pos_end, details) -> None:
         super().__init__(pos_start, pos_end, "Invalid Syntax", details)
 
+class RuntimeError(Error):
+    def __init__(self, pos_start, pos_end, details) -> None:
+        super().__init__(pos_start, pos_end, "Runtime Error", details)
 
 # keep track of line and column number (for executing code from files)
 class Position:
@@ -282,6 +285,26 @@ class Parser:
         return res.success(left)
     
 
+class RuntimeResult:
+    def __init__(self) -> None:
+        self.value = None
+        self.error = None
+
+    def register(self, res):
+        if res.error:
+            self.error = res.error
+
+        return res.value
+    
+    def success(self, value):
+        self.value = value
+        return self
+
+    def failure(self, error):
+        self.error = error
+        return self
+    
+
 # for storing numbers
 class Number:
     def __init__(self, value) -> None:
@@ -295,19 +318,21 @@ class Number:
     
     def add(self, other):
         if isinstance(other, Number):
-            return Number(self.value + other.value)
+            return Number(self.value + other.value), None
         
     def sub(self, other):
         if isinstance(other, Number):
-            return Number(self.value - other.value)
+            return Number(self.value - other.value), None
         
     def mul(self, other):
         if isinstance(other, Number):
-            return Number(self.value * other.value)
+            return Number(self.value * other.value), None
     
     def div(self, other):
         if isinstance(other, Number):
-            return Number(self.value / other.value)
+            if other.value == 0:
+                return None, RuntimeError(other.pos_start, other.pos_end, "Division by 0")
+            return Number(self.value / other.value), None
         
     def __repr__(self) -> str:
         return str(self.value)
@@ -323,30 +348,42 @@ class Interpreter:
         raise Exception(f"No visit_{type(node).__name__} method defined")
     
     def visit_NumberNode(self, node):
-        return Number(node.token.value).set_pos(node.pos_start, node.pos_end)
+        return RuntimeResult().success(Number(node.token.value).set_pos(node.pos_start, node.pos_end))
 
     def visit_BinaryOperationNode(self, node):
-        left = self.visit(node.left_node)
-        right = self.visit(node.right_node)
+        res = RuntimeResult()
+        left = res.register(self.visit(node.left_node))
+        if res.error: return res
+        right = res.register(self.visit(node.right_node))
+        if res.error: return res
 
         if node.op_token.type == TT_PLUS:
-            result = left.add(right)
+            result, error = left.add(right)
         elif node.op_token.type == TT_MINUS:
-            result = left.sub(right)
+            result, error = left.sub(right)
         elif node.op_token.type == TT_MUL:
-            result = left.mul(right)
+            result, error = left.mul(right)
         elif node.op_token.type == TT_DIV:
-            result = left.div(right)
+            result, error = left.div(right)
 
-        return result.set_pos(node.pos_start, node.pos_end)
+        if error:
+            return res.failure(error)
+
+        return res.success(result.set_pos(node.pos_start, node.pos_end))
     
     def visit_UnaryOperationNode(self, node):
-        number = self.visit(node.node)
+        res = RuntimeResult()
+        number = res.register(self.visit(node.node))
+        if res.error:
+            return res
 
         if node.op_token.type == TT_MINUS:
-            number = number.mul(Number(-1))
+            number, error = number.mul(Number(-1))
 
-        return number.set_pos(node.pos_start, node.pos_end)
+        if error:
+            return res.failure(error)
+
+        return res.success(number.set_pos(node.pos_start, node.pos_end))
 
 
 def run(text, file_name):
@@ -367,4 +404,4 @@ def run(text, file_name):
     interpreter = Interpreter()
     result = interpreter.visit(ast.node)
 
-    return result, None
+    return result.value, result.error
