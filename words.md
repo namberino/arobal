@@ -1,11 +1,15 @@
 # Some important vocabulary (Order by priority)
 
+- for expression: KEYWORD FOR identifier EQUAL expression KEYWORD TO expression KEYWORD STEP expression(optional) KEYWORD THEN expression
+- while expression: KEYWORD WHILE expression KEYWORD THEN expression
 - if expression:
   - KEYWORD IF expression KEYWORD THEN expression
   - KEYWORD ELIF expression KEYWORD THEN expression
   - KEYWORD ELSE expression
 - Atom: 
   - if expression
+  - for expression
+  - while expression
   - The numbers in the expression (int or float). 
   - Add support for parentheses here too (parentheses wrap around expression). 
   - Also add support for identifier (var name) here
