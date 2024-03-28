@@ -6,10 +6,10 @@ LETTERS = string.ascii_letters
 LETTERS_DIGITS = LETTERS + DIGITS
 
 KEYWORDS = [
-    "Var",
-    "And",
-    "Or",
-    "Not"
+    "var",
+    "and",
+    "or",
+    "not"
 ]
 
 # Token types
@@ -426,7 +426,7 @@ class Parser:
     def comparison_expression(self):
         res = ParseResult()
         
-        if self.current_token.matches(TT_KEYWORD, 'Not'):
+        if self.current_token.matches(TT_KEYWORD, "not"):
             op_token = self.current_token
             res.register_advance()
             self.advance()
@@ -447,7 +447,7 @@ class Parser:
         res = ParseResult()
 
         # check for keyword Var
-        if self.current_token.matches(TT_KEYWORD, "Var"):
+        if self.current_token.matches(TT_KEYWORD, "var"):
             res.register_advance()
             self.advance()
 
@@ -470,7 +470,7 @@ class Parser:
             
             return res.success(VarAssignNode(var_name, expression))
 
-        node = res.register(self.binary_op(self.comparison_expression, ((TT_KEYWORD, "And"), (TT_KEYWORD, "Or"))))
+        node = res.register(self.binary_op(self.comparison_expression, ((TT_KEYWORD, "and"), (TT_KEYWORD, "or"))))
 
         if res.error:
             return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected 'Var', int, float, identifier, '+', '-' or '('"))
@@ -694,9 +694,9 @@ class Interpreter:
             result, error = left.compare_lte(right)
         elif node.op_token.type == TT_GTE:
             result, error = left.compare_gte(right)
-        elif node.op_token.matches(TT_KEYWORD, 'And'):
+        elif node.op_token.matches(TT_KEYWORD, "and"):
             result, error = left.ander(right)
-        elif node.op_token.matches(TT_KEYWORD, 'Or'):
+        elif node.op_token.matches(TT_KEYWORD, "or"):
             result, error = left.orer(right)
 
 
@@ -713,7 +713,7 @@ class Interpreter:
 
         if node.op_token.type == TT_MINUS:
             number, error = number.mul(Number(-1))
-        elif node.op_token.matches(TT_KEYWORD, "Not"):
+        elif node.op_token.matches(TT_KEYWORD, "not"):
             number, error = number.notter()
 
         if error:
