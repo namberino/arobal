@@ -12,8 +12,9 @@
   - for expression
   - while expression
   - function
-  - The numbers in the expression (int or float). 
-  - Add support for parentheses here too (parentheses wrap around expression). 
+  - The numbers in the expression (int or float)
+  - Strings here too
+  - Add support for parentheses here too (parentheses wrap around expression)
   - Also add support for identifier (var name) here
 - function call: Atom LPAREN expression arguments(optional) RPAREN
 - Power: Atom ^ Factor
