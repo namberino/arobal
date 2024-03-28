@@ -1,6 +1,11 @@
 # Some important vocabulary (Order by priority)
 
+- if expression:
+  - KEYWORD IF expression KEYWORD THEN expression
+  - KEYWORD ELIF expression KEYWORD THEN expression
+  - KEYWORD ELSE expression
 - Atom: 
+  - if expression
   - The numbers in the expression (int or float). 
   - Add support for parentheses here too (parentheses wrap around expression). 
   - Also add support for identifier (var name) here
