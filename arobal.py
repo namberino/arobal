@@ -263,22 +263,25 @@ class ParseResult:
     def __init__(self) -> None:
         self.error = None
         self.node = None
+        self.advance_count = 0
+
+    def register_advance(self):
+        self.advance_count += 1
 
     def register(self, res):
+        self.advance_count += res.advance_count
         # check if result is parse result
-        if isinstance(res, ParseResult):
-            if res.error:
-                self.error = res.error
-            return res.node
-        
-        return res
+        if res.error:
+            self.error = res.error
+        return res.node
     
     def success(self, node):
         self.node = node
         return self
     
     def failure(self, error):
-        self.error = error
+        if not self.error or self.advance_count == 0:
+            self.error = error
         return self
 
 
@@ -310,32 +313,37 @@ class Parser:
         token = self.current_token
 
         if token.type in (TT_INT, TT_FLOAT):
-            res.register(self.advance())
+            res.register_advance()
+            self.advance()
             return res.success(NumberNode(token))
         elif token.type == TT_IDENTIFIER:
-            res.register(self.advance())
+            res.register_advance()
+            self.advance()
             return res.success(VarAccessNode(token))
         elif token.type == TT_LPAREN:
-            res.register(self.advance())
+            res.register_advance()
+            self.advance()
             expr = res.register(self.expression())
 
             if res.error:
                 return res
             
             if self.current_token.type == TT_RPAREN:
-                res.register(self.advance())
+                res.register_advance()
+                self.advance()
                 return res.success(expr)
             else:
                 return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected ')'"))
             
-        return res.failure(InvalidSyntaxError(token.pos_start, token.pos_end, "Expected int, float, '+', '-' or '('"))
+        return res.failure(InvalidSyntaxError(token.pos_start, token.pos_end, "Expected int, float, identifier, '+', '-' or '('"))
     
     def factor(self):
         res = ParseResult()
         token = self.current_token
 
         if token.type in (TT_PLUS, TT_MINUS):
-            res.register(self.advance())
+            res.register_advance()
+            self.advance()
             factor = res.register(self.factor())
 
             if res.error:
@@ -352,18 +360,21 @@ class Parser:
 
         # check for keyword VAR
         if self.current_token.matches(TT_KEYWORD, "VAR"):
-            res.register(self.advance())
+            res.register_advance()
+            self.advance()
 
             # check for identifier 
             if self.current_token.type != TT_IDENTIFIER:
                 return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected identifier"))
             
             var_name = self.current_token
-            res.register(self.advance())
+            res.register_advance()
+            self.advance()
 
             if self.current_token.type != TT_EQUAL:
                 return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected '='"))
-            res.register(self.advance())
+            res.register_advance()
+            self.advance()
 
             expression = res.register(self.expression())
             if res.error:
@@ -371,7 +382,12 @@ class Parser:
             
             return res.success(VarAssignNode(var_name, expression))
 
-        return self.binary_op(self.term, (TT_PLUS, TT_MINUS))
+        node = res.register(self.binary_op(self.term, (TT_PLUS, TT_MINUS)))
+
+        if res.error:
+            return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected 'VAR', int, float, identifier, '+', '-' or '('"))
+
+        return res.success(node)
 
     def binary_op(self, function_a, ops, function_b=None):
         if function_b == None:
@@ -384,7 +400,8 @@ class Parser:
 
         while self.current_token.type in ops:
             op_token = self.current_token
-            res.register(self.advance())
+            res.register_advance()
+            self.advance()
             right = res.register(function_b())
             if res.error:
                 return res
