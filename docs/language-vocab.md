@@ -1,14 +1,14 @@
 # Some important vocabulary (Order by priority)
 
 - function: KEYWORD FUNCTION identifier(optional) LPAREN identifier arguments(optional) RPAREN (ARROW expression) or (NEWLINE statement KEYWORD END)
-- for expression: KEYWORD FOR identifier EQUAL expression KEYWORD TO expression KEYWORD STEP expression(optional) KEYWORD THEN (expression) or (NEWLINE statement KEYWORD END)
-- while expression: KEYWORD WHILE expression KEYWORD THEN (expression) or (NEWLINE statement KEYWORD END)
+- for expression: KEYWORD FOR identifier EQUAL expression KEYWORD TO expression KEYWORD STEP expression(optional) KEYWORD THEN (statement) or (NEWLINE statement KEYWORD END)
+- while expression: KEYWORD WHILE expression KEYWORD THEN (statement) or (NEWLINE statement KEYWORD END)
 - if-expression-c:
-  - KEYWORD ELSE expression KEYWORD THEN (expression) or (NEWLINE statement KEYWORD END)
+  - KEYWORD ELSE expression KEYWORD THEN (statement) or (NEWLINE statement KEYWORD END)
 - if-expression-b:
-  - KEYWORD ELIF expression KEYWORD THEN (expression if-expression-b or if-expression-c (optional)) or (NEWLINE statement (KEYWORD END) or (if-expression-b or if-expression-c))
-- if expression:
-  - KEYWORD IF expression KEYWORD THEN (expression if-expression-b or if-expression-c (optional)) or (NEWLINE statement (KEYWORD END) or (if-expression-b or if-expression-c))
+  - KEYWORD ELIF expression KEYWORD THEN (statement if-expression-b or if-expression-c (optional)) or (NEWLINE statement (KEYWORD END) or (if-expression-b or if-expression-c))
+- if-expression:
+  - KEYWORD IF expression KEYWORD THEN (statement if-expression-b or if-expression-c (optional)) or (NEWLINE statement (KEYWORD END) or (if-expression-b or if-expression-c))
 - list expression: LSQUARE expression COMMA expression RSQUARE
 - Atom:
   - if expression
@@ -31,4 +31,5 @@
 - Expression: 
   - Comparison expression (KEYWORD: AND, OR) comparison expression
   - keyword VAR identifier(var_name) EQUAL expression
-- Statement: NEWLINE expression NEWLINE
+- Statement: KEYWORD RETURN expression(optional); KEYWORD CONTINUE; KEYWORD BREAK; expression
+- Statements: NEWLINE statement NEWLINE
