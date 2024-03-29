@@ -1,0 +1,32 @@
+# this is a comment
+
+function inger(string) -> string + "ing"
+
+function join(elements, seperator)
+    var result = ""
+    var length = len(elements)
+
+    for i = 0 to length then
+        var result = result + elements/i
+        if i != length - 1 then 
+            var result = result + seperator
+        end
+    end
+
+    return result
+end
+
+function mapper(elements, func)
+    var new_elements = []
+
+    for i = 0 to len(elements) then
+        append(new_elements, func(elements/i))
+    end
+
+    return new_elements
+end
+
+print("Hello world")
+for i = 0 to 5 then
+    print(join(mapper(["Loop", "Spoof"], inger), ", "))
+end

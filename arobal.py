@@ -174,6 +174,8 @@ class Lexer:
             elif self.current_char in ";\n":
                 tokens.append(Token(TT_NEWLINE, pos_start=self.pos))
                 self.advance()
+            elif self.current_char == "#":
+                self.skip_comment()
             elif self.current_char in DIGITS:
                 tokens.append(self.make_number())
             elif self.current_char in LETTERS:
@@ -346,6 +348,14 @@ class Lexer:
         
         self.advance()
         return Token(TT_STRING, string, pos_start, self.pos)
+    
+    def skip_comment(self):
+        self.advance() # advance pass the #
+
+        while self.current_char != '\n':
+            self.advance()
+
+        self.advance() # advance pass the newline
         
 
 class IfNode:
@@ -1302,7 +1312,7 @@ class Value:
         return RuntimeResult().failure(self.illegal_operation())
 
     def copy(self):
-        raise Exception('No copy method defined')
+        raise Exception("No copy method defined")
 
     def is_true(self):
         return False
@@ -1310,7 +1320,7 @@ class Value:
     def illegal_operation(self, other=None):
         if not other:
             other = self
-        return RuntimeResult(self.pos_start, other.pos_end, 'Illegal operation', self.context)
+        return RuntimeError(self.pos_start, other.pos_end, "Illegal operation", self.context)
     
 
 # for storing numbers
@@ -1670,6 +1680,42 @@ class BuiltinFunction(BaseFunction):
         return RuntimeResult().success(Number.null)
     execute_extend.arg_names = ["listA", "listB"]
 
+    def execute_len(self, exec_context):
+        list_ = exec_context.symbol_table.get("list")
+
+        if not isinstance(list_, List):
+            return RuntimeResult().failure(RuntimeError(self.pos_start, self.pos_end, "Argument must be a list", exec_context))
+
+        return RuntimeResult().success(Number(len(list_.elements)))
+    execute_len.arg_names = ["list"]
+
+    def execute_run(self, exec_context):
+        filename = exec_context.symbol_table.get("filename")
+
+        if not isinstance(filename, String):
+            return RuntimeResult().failure(RuntimeError(self.pos_start, self.pos_end, "Argument must be a string", exec_context))
+        
+        filename = filename.value
+        
+        try:
+            name, ext = os.path.splitext(filename)
+            if ext != ".ar":
+                return RuntimeResult().failure(RuntimeError(self.pos_start, self.pos_end, "Invalid file extension\n", exec_context))
+
+            with open(filename, "r") as f:
+                script = f.read()
+        except Exception as ex:
+            return RuntimeResult().failure(RuntimeError(self.pos_start, self.pos_end, f"Failed to load script \"{filename}\"\n" + str(ex), exec_context))
+        
+        _, error = run(script, filename)
+
+        if error:
+            return RuntimeResult().failure(RuntimeError(self.pos_start, self.pos_end, f"Failed to finish executing script \"{filename}\"\n" + error.as_string(), exec_context))
+
+        return RuntimeResult().success(Number.null)
+    execute_run.arg_names = ["filename"]
+
+
 BuiltinFunction.print = BuiltinFunction("print")
 BuiltinFunction.print_ret = BuiltinFunction("print_ret")
 BuiltinFunction.input = BuiltinFunction("input")
@@ -1682,6 +1728,8 @@ BuiltinFunction.is_function  = BuiltinFunction("is_function")
 BuiltinFunction.append = BuiltinFunction("append")
 BuiltinFunction.pop = BuiltinFunction("pop")
 BuiltinFunction.extend = BuiltinFunction("extend")
+BuiltinFunction.len = BuiltinFunction("len")
+BuiltinFunction.run = BuiltinFunction("run")
 
 class List(Value):
     def __init__(self, elements):
@@ -2013,6 +2061,8 @@ global_symbol_table.set("is_funcion", BuiltinFunction.is_function)
 global_symbol_table.set("append", BuiltinFunction.append)
 global_symbol_table.set("pop", BuiltinFunction.pop)
 global_symbol_table.set("extend", BuiltinFunction.extend)
+global_symbol_table.set("len", BuiltinFunction.len)
+global_symbol_table.set("run", BuiltinFunction.run)
 
 def run(text, file_name):
     # generate tokens
