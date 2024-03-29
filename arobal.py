@@ -1204,7 +1204,7 @@ class String(Value):
 class Function(Value):
     def __init__(self, name, body_node, arg_names):
         super().__init__()
-        self.name = name or "<anonymous>"
+        self.name = name or "<anon>"
         self.body_node = body_node
         self.arg_names = arg_names
 
@@ -1514,9 +1514,9 @@ class Interpreter:
 
 
 global_symbol_table = SymbolTable()
-global_symbol_table.set("Null", Number(0))
-global_symbol_table.set("True", Number(1))
-global_symbol_table.set("False", Number(0))
+global_symbol_table.set("NULL", Number(0))
+global_symbol_table.set("true", Number(1))
+global_symbol_table.set("false", Number(0))
 
 def run(text, file_name):
     # generate tokens
