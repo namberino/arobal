@@ -1204,6 +1204,9 @@ class String(Value):
         copy.set_context(self.context)
 
         return copy
+    
+    def __str__(self) -> str:
+        return self.value
 
     def __repr__(self):
         return f'"{self.value}"'
@@ -1475,6 +1478,9 @@ class List(Value):
         copy.set_context(self.context)
         
         return copy
+    
+    def __str__(self) -> str:
+        return ", ".join([str(x) for x in self.elements])
 
     def __repr__(self):
         return f'[{", ".join([str(x) for x in self.elements])}]'
