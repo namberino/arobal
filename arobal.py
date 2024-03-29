@@ -20,7 +20,8 @@ KEYWORDS = [
     "to",
     "step",
     "while",
-    "function"
+    "function",
+    "end"
 ]
 
 # Token types
@@ -47,6 +48,7 @@ TT_IDENTIFIER = "IDENTIFIER"
 TT_KEYWORD = "KEYWORD"
 TT_COMMA = "COMMA"
 TT_ARROW = "ARROW"
+TT_NEWLINE = "NEWLINE"
 TT_EOF = "EOF"
 
 class Error:
@@ -165,6 +167,9 @@ class Lexer:
 
         while self.current_char != None:
             if self.current_char in " \t":
+                self.advance()
+            elif self.current_char in ";\n":
+                tokens.append(Token(TT_NEWLINE, pos_start=self.pos))
                 self.advance()
             elif self.current_char in DIGITS:
                 tokens.append(self.make_number())

@@ -1,12 +1,14 @@
 # Some important vocabulary (Order by priority)
 
-- function: KEYWORD FUNCTION identifier(optional) LPAREN identifier arguments(optional) RPAREN ARROW expression
-- for expression: KEYWORD FOR identifier EQUAL expression KEYWORD TO expression KEYWORD STEP expression(optional) KEYWORD THEN expression
-- while expression: KEYWORD WHILE expression KEYWORD THEN expression
+- function: KEYWORD FUNCTION identifier(optional) LPAREN identifier arguments(optional) RPAREN (ARROW expression) or (NEWLINE statement KEYWORD END)
+- for expression: KEYWORD FOR identifier EQUAL expression KEYWORD TO expression KEYWORD STEP expression(optional) KEYWORD THEN (expression) or (NEWLINE statement KEYWORD END)
+- while expression: KEYWORD WHILE expression KEYWORD THEN (expression) or (NEWLINE statement KEYWORD END)
+- if-expression-n:
+  - KEYWORD ELSE expression KEYWORD THEN (expression) or (NEWLINE statement KEYWORD END)
+- if-expression-n:
+  - KEYWORD ELIF expression KEYWORD THEN (expression if-expression-n (optional)) or (NEWLINE statement (KEYWORD END) or (if-expression-n))
 - if expression:
-  - KEYWORD IF expression KEYWORD THEN expression
-  - KEYWORD ELIF expression KEYWORD THEN expression
-  - KEYWORD ELSE expression
+  - KEYWORD IF expression KEYWORD THEN (expression if-expression-n (optional)) or (NEWLINE statement (KEYWORD END) or (if-expression-n))
 - list expression: LSQUARE expression COMMA expression RSQUARE
 - Atom:
   - if expression
@@ -29,3 +31,4 @@
 - Expression: 
   - Comparison expression (KEYWORD: AND, OR) comparison expression
   - keyword VAR identifier(var_name) EQUAL expression
+- Statement: NEWLINE expression NEWLINE
