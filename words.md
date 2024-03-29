@@ -7,11 +7,13 @@
   - KEYWORD IF expression KEYWORD THEN expression
   - KEYWORD ELIF expression KEYWORD THEN expression
   - KEYWORD ELSE expression
+- list expression: LSQUARE expression COMMA expression RSQUARE
 - Atom:
   - if expression
   - for expression
   - while expression
   - function
+  - list expression
   - The numbers in the expression (int or float)
   - Strings here too
   - Add support for parentheses here too (parentheses wrap around expression)

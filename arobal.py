@@ -32,6 +32,8 @@ TT_DIV = "DIV"
 TT_POW = "POW"
 TT_LPAREN = "LPAREN"
 TT_RPAREN = "RPAREN"
+TT_LSQUARE = "LSQUARE" # [
+TT_RSQUARE = "RSQUARE" # ]
 TT_EQUAL = "EQ"
 TT_EE = "EE" # ==
 TT_NE = "NE" # !=
@@ -184,6 +186,12 @@ class Lexer:
                 self.advance()
             elif self.current_char == ')':
                 tokens.append(Token(TT_RPAREN, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == '[':
+                tokens.append(Token(TT_LSQUARE, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == ']':
+                tokens.append(Token(TT_RSQUARE, pos_start=self.pos))
                 self.advance()
             elif self.current_char == "^":
                 tokens.append(Token(TT_POW, pos_start=self.pos))
@@ -420,6 +428,13 @@ class StringNode:
         return f"{self.token}"
     
 
+class ListNode:
+    def __init__(self, element_nodes, pos_start, pos_end) -> None:
+        self.element_nodes = element_nodes
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+
+
 class BinaryOperationNode:
     def __init__(self, left_node, op_token, right_node) -> None:
         self.left_node = left_node
@@ -486,11 +501,47 @@ class Parser:
     def parse(self):
         res = self.expression()
         if not res.error and self.current_token.type != TT_EOF:
-            return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected +, -, * or /"))
+            return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected '+', '-', '*' or '/'"))
         return res
     
     def power(self):
         return self.binary_op(self.call, (TT_POW, ), self.factor)
+    
+    def list_expression(self):
+        res = ParseResult()
+        element_nodes = []
+        pos_start = self.current_token.pos_start.copy()
+
+        if self.current_token.type != TT_LSQUARE:
+            return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected '['"))
+        
+        res.register_advance()
+        self.advance()
+
+        if self.current_token.type == TT_RSQUARE:
+            res.register_advance()
+            self.advance()
+        else:
+            element_nodes.append(res.register(self.expression()))
+
+            if res.error:
+                return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected ']', int, float, identifier, 'var', 'if', 'for', 'while', 'function', '+', '-', '(', '[' or 'not'"))
+            
+            while self.current_token.type == TT_COMMA:
+                res.register_advance()
+                self.advance()
+
+                element_nodes.append(res.register(self.expression()))
+                if res.error:
+                    return res
+                
+            if self.current_token.type != TT_RSQUARE:
+                return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected ',' or ']'"))
+            
+            res.register_advance()
+            self.advance()
+
+        return res.success(ListNode(element_nodes, pos_start, self.current_token.pos_end.copy()))
     
     def if_expression(self):
         res = ParseResult()
@@ -714,7 +765,7 @@ class Parser:
                 arg_nodes.append(res.register(self.expression()))
 
                 if res.error:
-                    return res.failure(InvalidSyntaxError(self.current_tok.pos_start, self.current_tok.pos_end, "Expected int, float, identifier, 'var', 'if', 'for', 'while', 'function', '+', '-', '(', ')' or 'not'"))
+                    return res.failure(InvalidSyntaxError(self.current_tok.pos_start, self.current_tok.pos_end, "Expected int, float, identifier, 'var', 'if', 'for', 'while', 'function', 'not', '+', '-', '(', '[' or ')' "))
 
                 while self.current_token.type == TT_COMMA:
                     res.register_advance()
@@ -763,6 +814,11 @@ class Parser:
                 return res.success(expr)
             else:
                 return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected ')'"))
+        elif token.type == TT_LSQUARE:
+            list_expr = res.register(self.list_expression())
+            if res.error:
+                return res
+            return res.success(list_expr)
         elif token.matches(TT_KEYWORD, "if"):
             if_expression = res.register(self.if_expression())
             if res.error:
@@ -784,7 +840,7 @@ class Parser:
                 return res
             return res.success(function_def)
             
-        return res.failure(InvalidSyntaxError(token.pos_start, token.pos_end, "Expected int, float, identifier, '+', '-' or '(', 'if', 'for', 'while', 'function'"))
+        return res.failure(InvalidSyntaxError(token.pos_start, token.pos_end, "Expected int, float, identifier, '+', '-' or '(', '[' 'if', 'for', 'while', 'function'"))
     
     def factor(self):
         res = ParseResult()
@@ -823,14 +879,14 @@ class Parser:
         node = res.register(self.binary_op(self.arithmetic_expression, (TT_EE, TT_NE, TT_LT, TT_GT, TT_LTE, TT_GTE)))
 		
         if res.error:
-            return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected int, float, identifier, '+', '-', '(' or 'Not'"))
+            return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected int, float, identifier, '+', '-', '(', '[' or 'Not'"))
 
         return res.success(node)
 
     def expression(self):
         res = ParseResult()
 
-        # check for keyword Var
+        # check for keyword var
         if self.current_token.matches(TT_KEYWORD, "var"):
             res.register_advance()
             self.advance()
@@ -857,7 +913,7 @@ class Parser:
         node = res.register(self.binary_op(self.comparison_expression, ((TT_KEYWORD, "and"), (TT_KEYWORD, "or"))))
 
         if res.error:
-            return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected int, float, identifier, 'var', 'if', 'for', 'while', 'function', '+', '-' or '('"))
+            return res.failure(InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected int, float, identifier, 'var', 'if', 'for', 'while', 'function', '+', '-', '(' or '['"))
 
         return res.success(node)
 
@@ -1186,6 +1242,62 @@ class Function(Value):
         return f"<function {self.name}>"
     
 
+class List(Value):
+    def __init__(self, elements):
+        super().__init__()
+        self.elements = elements
+
+    # append elements to list
+    def add(self, other):
+        new_list = self.copy()
+        new_list.elements.append(other)
+
+        return new_list, None
+
+    # remove element from list
+    def sub(self, other):
+        if isinstance(other, Number):
+            new_list = self.copy()
+            try:
+                new_list.elements.pop(other.value)
+
+                return new_list, None
+            except:
+                return None, RuntimeError(other.pos_start, other.pos_end, 'Element at this index could not be removed from list as index is out of bounds', self.context)
+        else:
+            return None, Value.illegal_operation(self, other)
+
+    # concatenate to list to list
+    def mul(self, other):
+        if isinstance(other, List):
+            new_list = self.copy()
+            new_list.elements.extend(other.elements)
+
+            return new_list, None
+        else:
+            return None, Value.illegal_operation(self, other)
+
+    # get element from list
+    def div(self, other):
+        if isinstance(other, Number):
+            try:
+                return self.elements[other.value], None
+            except:
+                return None, RuntimeError(other.pos_start, other.pos_end, 'Element at this index could not be retrieved from list as index is out of bounds', self.context)
+        else:
+            return None, Value.illegal_operation(self, other)
+  
+    def copy(self):
+        copy = List(self.elements[:])
+        copy.set_pos(self.pos_start, self.pos_end)
+        copy.set_context(self.context)
+        
+        return copy
+
+    def __repr__(self):
+        return f'[{", ".join([str(x) for x in self.elements])}]'
+    
+
 class Interpreter:
     def visit(self, node, context):
         method_name = f"visit_{type(node).__name__}"
@@ -1200,6 +1312,18 @@ class Interpreter:
     
     def visit_StringNode(self, node, context):
         return RuntimeResult().success(String(node.token.value).set_context(context).set_pos(node.pos_start, node.pos_end))
+    
+    def visit_ListNode(self, node, context):
+        res = RuntimeResult()
+        elements = []
+
+        for element_node in node.element_nodes:
+            elements.append(res.register(self.visit(element_node, context)))
+
+            if res.error:
+                return res
+            
+        return res.success(List(elements).set_context(context).set_pos(node.pos_start, node.pos_end))
     
     def visit_VarAccessNode(self, node, context):
         res = RuntimeResult()
@@ -1303,6 +1427,7 @@ class Interpreter:
     
     def visit_ForNode(self, node, context):
         res = RuntimeResult()
+        elements = []
 
         start_value = res.register(self.visit(node.start_value_node, context))
         if res.error:
@@ -1330,14 +1455,15 @@ class Interpreter:
             context.symbol_table.set(node.var_name_token.value, Number(i)) # for accessing i within the loop
             i += step_value.value
 
-            res.register(self.visit(node.body_node, context))
+            elements.append(res.register(self.visit(node.body_node, context)))
             if res.error:
                 return res
 
-        return res.success(None)
+        return res.success(List(elements).set_context(context).set_pos(node.pos_start, node.pos_end))
     
     def visit_WhileNode(self, node, context):
         res = RuntimeResult()
+        elements = []
 
         while True:
             condition = res.register(self.visit(node.condition_node, context))
@@ -1347,11 +1473,11 @@ class Interpreter:
             if not condition.is_true():
                 break
 
-            res.register(self.visit(node.body_node, context))
+            elements.append(res.register(self.visit(node.body_node, context)))
             if res.error:
                 return res
 
-        return res.success(None)
+        return res.success(List(elements).set_context(context).set_pos(node.pos_start, node.pos_end))
     
     def visit_FunctionNode(self, node, context):
         res = RuntimeResult()
