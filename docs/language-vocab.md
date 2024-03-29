@@ -3,12 +3,12 @@
 - function: KEYWORD FUNCTION identifier(optional) LPAREN identifier arguments(optional) RPAREN (ARROW expression) or (NEWLINE statement KEYWORD END)
 - for expression: KEYWORD FOR identifier EQUAL expression KEYWORD TO expression KEYWORD STEP expression(optional) KEYWORD THEN (expression) or (NEWLINE statement KEYWORD END)
 - while expression: KEYWORD WHILE expression KEYWORD THEN (expression) or (NEWLINE statement KEYWORD END)
-- if-expression-n:
+- if-expression-c:
   - KEYWORD ELSE expression KEYWORD THEN (expression) or (NEWLINE statement KEYWORD END)
-- if-expression-n:
-  - KEYWORD ELIF expression KEYWORD THEN (expression if-expression-n (optional)) or (NEWLINE statement (KEYWORD END) or (if-expression-n))
+- if-expression-b:
+  - KEYWORD ELIF expression KEYWORD THEN (expression if-expression-b or if-expression-c (optional)) or (NEWLINE statement (KEYWORD END) or (if-expression-b or if-expression-c))
 - if expression:
-  - KEYWORD IF expression KEYWORD THEN (expression if-expression-n (optional)) or (NEWLINE statement (KEYWORD END) or (if-expression-n))
+  - KEYWORD IF expression KEYWORD THEN (expression if-expression-b or if-expression-c (optional)) or (NEWLINE statement (KEYWORD END) or (if-expression-b or if-expression-c))
 - list expression: LSQUARE expression COMMA expression RSQUARE
 - Atom:
   - if expression
