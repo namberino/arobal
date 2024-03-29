@@ -165,6 +165,14 @@ AROBAL% var x = 1
 1
 AROBAL% for i = 0 to 10 then var x = x + i
 [1, 2, 4, 7, 11, 16, 22, 29, 37, 46]
+AROBAL% var x = 1
+1
+AROBAL% for i = 0 to 10 step 2 then var x = x + i
+[1, 3, 7, 13, 21]
+AROBAL% var x = 1
+1
+AROBAL% for i = 10 to 0 step -1 then var x = x + i
+[11, 20, 28, 35, 41, 46, 50, 53, 55, 56]
 ```
 
 `while` loop:
